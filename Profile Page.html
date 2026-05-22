@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energy Manager · Profile</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        :root {
+            --primary-blue: #3b82f6;
+            --primary-dark: #1e293b;
+            --bg-main: #f8fafc;
+            --border: #e2e8f0;
+            --low: #10b981;
+            --medium: #f59e0b;
+            --high: #ef4444;
+        }
+        body {
+            background: var(--bg-main);
+        }
+        .container {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            gap: 2rem;
+        }
+        .sidebar {
+            width: 300px;
+            background: white;
+            border-radius: 2rem;
+            padding: 2rem;
+            border: 1px solid var(--border);
+        }
+        .profile-info {
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 2rem;
+            margin-bottom: 2rem;
+        }
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            border-radius: 1rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .menu-item i { width: 24px; }
+        .menu-item:hover:not(.locked) { background: #eef2ff; }
+        .menu-item.locked {
+            color: #94a3b8;
+            background: #f1f5f9;
+            cursor: not-allowed;
+        }
+        .menu-item.active {
+            background: var(--primary-blue);
+            color: white;
+        }
+        .badge {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 0.2rem 0.8rem;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            margin-left: auto;
+        }
+        .content-area {
+            flex: 1;
+            background: white;
+            border-radius: 2rem;
+            padding: 2rem;
+            border: 1px solid var(--border);
+        }
+        .footer {
+            margin-top: 3rem;
+            text-align: center;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="sidebar">
+        <div class="profile-info">
+            <i class="fas fa-user-circle" style="font-size: 4rem; color: var(--primary-blue);"></i>
+            <h2 id="displayName">Loading...</h2>
+        </div>
+        <div class="menu-item" onclick="loadPage('code-generator')"><i class="fas fa-key"></i> Code Generator</div>
+        <div class="menu-item locked" id="consumption-menu" onclick="checkAccess('consumption')"><i class="fas fa-chart-line"></i> Consumption <span class="badge">Locked</span></div>
+        <div class="menu-item locked" id="rewards-menu" onclick="checkAccess('rewards')"><i class="fas fa-gift"></i> Rewards <span class="badge">Locked</span></div>
+        <div class="menu-item" onclick="loadPage('support')"><i class="fas fa-headset"></i> Support</div>
+        <div class="menu-item" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</div>
+        <div class="footer"><div class="helpline">📞 Helpline: 1912</div></div>
+    </div>
+    <div class="content-area" id="content-area"></div>
+</div>
+
+<script>
+    let hasPass = localStorage.getItem('hasPass') === 'true';
+    let currentUser = localStorage.getItem('userName') || 'User';
+
+    document.getElementById('displayName').innerText = currentUser;
+    if(hasPass) {
+        document.getElementById('consumption-menu').classList.remove('locked');
+        document.getElementById('rewards-menu').classList.remove('locked');
+        document.querySelectorAll('.badge').forEach(b => b.remove());
+    }
+
+    function loadPage(page) {
+        const area = document.getElementById('content-area');
+        if(page === 'code-generator') {
+            const phone = localStorage.getItem('userPhone') || '9876';
+            const code = `${phone.slice(0,4)}-${Math.floor(1000+Math.random()*9000)}`;
+            area.innerHTML = `
+                <div style="text-align:center"><h2>Your Unique Code</h2>
+                <div style="background:#f1f5f9; padding:2rem; border-radius:2rem;"><div style="font-size:3rem; font-weight:bold;">${code}</div>
+                ${!hasPass ? `<input type="password" id="passcode" placeholder="4-digit pass" maxlength="4" style="margin:1rem 0; padding:1rem;"><button onclick="createPass()" style="background:var(--primary-blue); color:white; padding:0.8rem 2rem; border:none; border-radius:2rem;">Create Pass</button>` : `<p style="color:green;">✅ Pass Active — Consumption & Rewards unlocked</p>`}
+                </div></div>
+            `;
+        } else if(page === 'support') {
+            area.innerHTML = `<h2>Customer Support</h2><p>📞 Helpline: 1912 (24/7)<br>📧 support@energymanager.com</p>`;
+        }
+        document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+        event?.target.closest('.menu-item')?.classList.add('active');
+    }
+
+    function createPass() {
+        const p = document.getElementById('passcode').value;
+        if(p.length===4 && /^\d+$/.test(p)) {
+            localStorage.setItem('hasPass','true');
+            hasPass=true;
+            alert('✅ Pass created!');
+            location.reload();
+        } else alert('❌ Enter 4-digit number');
+    }
+
+    function checkAccess(page) {
+        if(!hasPass) { alert('Create pass first'); loadPage('code-generator'); }
+        else if(page==='consumption') loadConsumptionPage();
+        else if(page==='rewards') loadRewardsPage();
+    }
+
+    function loadConsumptionPage() {
+        const monthly = [
+            {month:'Jan',kWh:320},{month:'Feb',kWh:290},{month:'Mar',kWh:310},
+            {month:'Apr',kWh:350},{month:'May',kWh:420},{month:'Jun',kWh:450},
+            {month:'Jul',kWh:380},{month:'Aug',kWh:340},{month:'Sep',kWh:310},
+            {month:'Oct',kWh:300},{month:'Nov',kWh:280},{month:'Dec',kWh:310}
+        ];
+        const now = new Date();
+        const idx = now.getMonth();
+        const consumption = monthly[idx].kWh;
+        const prev = monthly[(idx+11)%12].kWh;
+        const avg = [monthly[(idx+11)%12].kWh, monthly[idx].kWh, monthly[(idx+1)%12].kWh].reduce((a,b)=>a+b,0)/3;
+        let status = consumption<250?'Low':consumption<350?'Medium':'High';
+        let color = consumption<250?'var(--low)':consumption<350?'var(--medium)':'var(--high)';
+        document.getElementById('content-area').innerHTML = `
+            <div style="max-width:900px; margin:auto;">
+                <div style="background:#eef2ff; padding:1rem; border-radius:1rem; margin-bottom:2rem;">
+                    <i class="fas fa-info-circle"></i> <strong>Data source:</strong> MSEDCL customer pattern · Higher in summer (AC usage) · Real-time API ready
+                </div>
+                <h2>⚡ Consumption · ${monthly[idx].month} 2025</h2>
+                <div style="background:linear-gradient(145deg,#f1f5f9,white); padding:2rem; border-radius:2rem;">
+                    <div style="font-size:3rem; font-weight:bold;">${consumption} <span style="font-size:1.5rem;">kWh</span></div>
+                    <div style="color:${color}; font-weight:bold;">${status} usage</div>
+                    <p>📉 vs last month: ${prev} kWh (${consumption-prev>0?'+'+(consumption-prev):consumption-prev} kWh)</p>
+                    <p>📊 3‑month average: ${avg.toFixed(0)} kWh</p>
+                </div>
+                <div style="margin-top:2rem; background:white; border:1px solid var(--border); border-radius:2rem; padding:1.5rem;">
+                    <h3>📅 Last 6 months</h3>
+                    ${monthly.slice(Math.max(0,idx-5),idx+1).map(m => `<div><b>${m.month}</b> ${m.kWh} kWh <div style="background:#e2e8f0; height:8px; border-radius:4px;"><div style="width:${(m.kWh/500)*100}%; background:${m.kWh>350?'var(--high)':m.kWh>250?'var(--medium)':'var(--low)'}; height:8px; border-radius:4px;"></div></div></div>`).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    function loadRewardsPage() {
+        let points = parseInt(localStorage.getItem('rewardPoints')) || 1250;
+        const area = document.getElementById('content-area');
+        area.innerHTML = `
+            <div style="max-width:800px; margin:auto;">
+                <h2>🏆 Rewards</h2>
+                <div style="background:linear-gradient(135deg,#10b981,#047857); color:white; padding:1.5rem; border-radius:2rem; text-align:center;"><div style="font-size:3rem;">${points}</div>Total points</div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; margin:2rem 0;">
+                    <div style="border:1px solid var(--border); padding:1rem; border-radius:1rem;"><h3>₹50 Discount</h3><p>500 pts</p><button onclick="redeem(500,'₹50 Discount')" ${points<500?'disabled':''} style="background:${points>=500?'var(--primary-blue)':'#94a3b8'}; width:100%; padding:0.5rem; border:none; border-radius:1rem; color:white;">Redeem</button></div>
+                    <div style="border:1px solid var(--border); padding:1rem; border-radius:1rem;"><h3>💡 LED Bulb</h3><p>1000 pts</p><button onclick="redeem(1000,'LED Bulb')" ${points<1000?'disabled':''} style="background:${points>=1000?'var(--primary-blue)':'#94a3b8'}; width:100%; padding:0.5rem; border:none; border-radius:1rem; color:white;">Redeem</button></div>
+                    <div style="border:1px solid var(--border); padding:1rem; border-radius:1rem;"><h3>🔍 Energy Audit</h3><p>2000 pts</p><button onclick="redeem(2000,'Energy Audit')" ${points<2000?'disabled':''} style="background:${points>=2000?'var(--primary-blue)':'#94a3b8'}; width:100%; padding:0.5rem; border:none; border-radius:1rem; color:white;">Redeem</button></div>
+                </div>
+            </div>
+        `;
+        window.redeem = (pts, name) => {
+            let p = parseInt(localStorage.getItem('rewardPoints'))||1250;
+            if(p>=pts) { localStorage.setItem('rewardPoints', p-pts); alert(`✅ Redeemed: ${name}`); loadRewardsPage(); }
+            else alert('❌ Not enough points');
+        };
+    }
+
+    function logout() { window.location.href = "Electricity Management.html"; }
+    loadPage('code-generator');
+</script>
+</body>
+</html>
